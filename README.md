@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ShadowChat - Real-time Anonymous Chat Application
+
+A complete full-stack real-time chat application where users can talk anonymously using Google OAuth.
+
+## Features
+- **Google Login**: Secure authentication with Gmail.
+- **Anonymous Profiles**: Automatic generation of fun names (e.g., ShadowFox_92) and avatars.
+- **Real-time Presence**: See who's online/offline instantly.
+- **1v1 Chat**: Private messaging powered by Socket.IO.
+- **Restriction**: Users can only chat if both are online.
+- **Typing Indicators**: Real-time feedback when the other person is typing.
+- **Timestamps**: Every message shows when it was sent.
+
+## Tech Stack
+- **Frontend**: Next.js, Tailwind CSS, NextAuth.js, Socket.IO Client.
+- **Backend**: Node.js, Express, Socket.IO Server, Mongoose.
+- **Database**: MongoDB.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js installed.
+- MongoDB instance (Local or Atlas).
+- Google OAuth Credentials (Client ID and Secret).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Installation
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Clone the project**
+   ```bash
+   git clone <repository-url>
+   cd promptchat
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Setup Backend**
+   ```bash
+   cd server
+   npm install
+   ```
+   Create a `.env` file in the `server` directory:
+   ```env
+   PORT=5000
+   MONGODB_URI=your_mongodb_connection_string
+   CLIENT_URL=http://localhost:3000
+   ```
+   Run the backend:
+   ```bash
+   npm run dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Setup Frontend**
+   ```bash
+   cd ../client
+   npm install
+   ```
+   Create a `.env.local` file in the `client` directory:
+   ```env
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=any_random_string
+   NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+   ```
+   Run the frontend:
+   ```bash
+   npm run dev
+   ```
 
-## Learn More
+4. **Access the App**
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Logic Overview
+- **Anonymous Profiles**: During Google sign-in, the backend generates a random adjective-noun combination and a DiceBear avatar. The real name and email are stored but never shown.
+- **Real-time Status**: When a user connects to the socket, they are marked as online in MongoDB. On disconnect, they are marked offline.
+- **Messaging Restriction**: The `socketHandler.js` checks the `isOnline` status of the recipient before allowing a message to be saved or emitted.

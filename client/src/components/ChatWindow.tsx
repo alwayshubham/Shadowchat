@@ -4,9 +4,9 @@ import { useChat } from "@/context/ChatContext";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { Send, Smile, Paperclip, MoreVertical } from "lucide-react";
+import { Send, Smile, Paperclip, MoreVertical, ArrowLeft } from "lucide-react";
 
-export default function ChatWindow({ recipient }: any) {
+export default function ChatWindow({ recipient, onBack }: any) {
     const { data: session }: any = useSession();
     const { messages, sendMessage, sendTyping, typingUsers, onlineUsers, setChatId } = useChat();
     const [inputText, setInputText] = useState("");
@@ -52,11 +52,16 @@ export default function ChatWindow({ recipient }: any) {
     return (
         <div className="flex flex-col h-full bg-white rounded-r-2xl overflow-hidden shadow-sm">
             {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-white">
+            <div className="p-4 border-b flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
                 <div className="flex items-center gap-3">
+                    {onBack && (
+                        <button onClick={onBack} className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
                     <div className="relative">
-                        <img src={recipient.avatar} alt={recipient.anonymousName} className="w-10 h-10 rounded-xl bg-gray-100" />
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${isOnline ? "bg-green-500" : "bg-gray-300"
+                        <img src={recipient.avatar} alt={recipient.anonymousName} className="w-10 h-10 rounded-xl bg-gray-100 object-cover border border-gray-200" />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? "bg-green-500" : "bg-gray-300"
                             }`} />
                     </div>
                     <div>
@@ -74,7 +79,7 @@ export default function ChatWindow({ recipient }: any) {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50/50 relative">
                 {chatMessages.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
                         <img src={recipient.avatar} className="w-20 h-20 mb-3 grayscale opacity-30" />
@@ -110,16 +115,16 @@ export default function ChatWindow({ recipient }: any) {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t bg-white">
+            <div className="p-3 md:p-4 bg-white border-t border-gray-100">
                 {!isOnline ? (
-                    <div className="bg-orange-50 border border-orange-100 p-3 rounded-xl text-center">
+                    <div className="bg-orange-50/80 border border-orange-100/50 p-3 rounded-xl text-center shadow-sm">
                         <p className="text-sm text-orange-700 font-medium">
                             You can only chat when both of you are online.
                         </p>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 bg-gray-100 p-2 rounded-2xl">
-                        <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                    <div className="flex items-center gap-1 md:gap-2 bg-gray-100/80 hover:bg-gray-100 p-1.5 md:p-2 rounded-2xl transition-colors border border-gray-200/50">
+                        <button className="p-2 md:p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all hidden sm:block">
                             <Smile size={20} />
                         </button>
                         <input
@@ -128,18 +133,18 @@ export default function ChatWindow({ recipient }: any) {
                             onChange={handleTyping}
                             onKeyDown={(e) => e.key === "Enter" && handleSend()}
                             placeholder="Type a message..."
-                            className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-1 text-gray-800"
+                            className="flex-1 bg-transparent border-none focus:ring-0 text-sm md:text-base py-2.5 px-3 text-gray-800 placeholder-gray-400"
                         />
-                        <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                        <button className="p-2 md:p-2.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all">
                             <Paperclip size={20} />
                         </button>
                         <button
                             onClick={handleSend}
                             disabled={!inputText.trim()}
-                            className={`p-2 rounded-xl transition-all duration-200 ${inputText.trim() ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-gray-200 text-gray-400"
+                            className={`p-2.5 md:p-3 rounded-xl transition-all duration-200 flex items-center justify-center ${inputText.trim() ? "bg-blue-600 text-white shadow-md shadow-blue-200 hover:bg-blue-700 hover:scale-105 active:scale-95" : "bg-white text-gray-300"
                                 }`}
                         >
-                            <Send size={20} />
+                            <Send size={18} className="ml-0.5" />
                         </button>
                     </div>
                 )}

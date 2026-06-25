@@ -22,7 +22,29 @@ app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
+    .then(async () => {
+        console.log('Connected to MongoDB');
+        // Ensure AI bot user exists
+        const aiBotEmail = 'ai-bot@shadowchat.local';
+        const aiBotName = 'CrazyBot';
+        const aiBotAvatar = 'https://api.dicebear.com/7.x/bottts/svg?seed=CrazyBot';
+        const existingBot = await User.findOne({ email: aiBotEmail });
+        if (!existingBot) {
+            await User.create({
+                email: aiBotEmail,
+                anonymousName: aiBotName,
+                avatar: aiBotAvatar,
+                isOnline: true
+            });
+            console.log('AI bot user created.');
+        } else {
+            // Optionally, ensure bot is online
+            if (!existingBot.isOnline) {
+                existingBot.isOnline = true;
+                await existingBot.save();
+            }
+        }
+    })
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Basic route

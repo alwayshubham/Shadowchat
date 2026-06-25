@@ -7,22 +7,72 @@ const setupSocket = (io) => {
         console.log('A user connected:', socket.id);
 
         // User joins and goes online
-        socket.on('join', async (userId) => {
+        // User joins and goes online
+        socket.on('join', async (userId, lat, lng) => {
             try {
-                const user = await User.findByIdAndUpdate(userId, {
-                    isOnline: true,
-                    socketId: socket.id
-                }, { new: true });
+                // Location logic commented out; allow join without location
+                // // Validate lat/lng
+                // if (
+                //     typeof lat !== 'number' ||
+                //     typeof lng !== 'number' ||
+                //     isNaN(lat) ||
+                //     isNaN(lng) ||
+                //     lat < -90 || lat > 90 ||
+                //     lng < -180 || lng > 180
+                // ) {
+                //     console.error(`Invalid coordinates for user ${userId}:`, lat, lng);
+                //     socket.emit('error', {
+                //         message: 'Invalid location data.'
+                //     });
+                //     return;
+                // }
 
-                if (user) {
-                    socket.userId = userId;
-                    console.log(`${user.anonymousName} is online`);
+                // // Update user with valid location
+                // const user = await User.findByIdAndUpdate(
+                //     userId,
+                //     {
+                //         isOnline: true,
+                //         socketId: socket.id,
+                //         location: {
+                //             type: 'Point',
+                //             coordinates: [Number(lng), Number(lat)]
+                //         }
+                //     },
+                //     { new: true }
+                // );
 
-                    // Notify others that this user is online
-                    io.emit('userStatus', { userId: user._id, isOnline: true });
+                // Update user as online and set socketId (no location)
+                const user = await User.findByIdAndUpdate(
+                    userId,
+                    {
+                        isOnline: true,
+                        socketId: socket.id
+                    },
+                    { new: true }
+                );
+
+                if (!user) {
+                    console.error(`User not found: ${userId}`);
+                    return;
                 }
+
+                socket.userId = userId;
+
+                console.log(
+                    `${user.anonymousName} is online.`
+                );
+
+                // Notify others that this user is online
+                io.emit('userStatus', {
+                    userId: user._id,
+                    isOnline: true
+                });
+
             } catch (err) {
-                console.error('Error in join:', err);
+                console.error('Join event error:', err);
+                socket.emit('error', {
+                    message: 'Server error on join.'
+                });
             }
         });
 
@@ -32,34 +82,25 @@ const setupSocket = (io) => {
                 const senderId = socket.userId;
                 if (!senderId) return;
 
-                // Check if both users are online (as per requirements)
                 const recipient = await User.findById(recipientId);
-                if (!recipient || !recipient.isOnline) {
-                    socket.emit('error', { message: 'User is offline. You can only chat when both are online.' });
-                    return;
-                }
 
                 // Find or create chat
                 let chat = await Chat.findOne({
                     participants: { $all: [senderId, recipientId] }
                 });
-
                 if (!chat) {
                     chat = await Chat.create({ participants: [senderId, recipientId] });
                 }
 
-                // Create message
+                // Create sender's message
                 const message = await Message.create({
                     chatId: chat._id,
                     senderId,
                     text
                 });
-
-                // Update last message in chat
                 chat.lastMessage = message._id;
                 await chat.save();
 
-                // Emit to both if recipient is online
                 const messageData = {
                     _id: message._id,
                     chatId: chat._id,
@@ -69,8 +110,45 @@ const setupSocket = (io) => {
                 };
 
                 socket.emit('message', messageData);
-                if (recipient.socketId) {
+                if (recipient && recipient.isOnline && recipient.socketId) {
                     io.to(recipient.socketId).emit('message', messageData);
+                }
+
+                // Only trigger AI bot reply if recipient is the AI bot
+                if (recipient && recipient.email === 'ai-bot@shadowchat.local') {
+                    setTimeout(async () => {
+                        // Find AI bot user (should always exist)
+                        let aiBot = recipient;
+                        // Generate a crazy reply
+                        const crazyReplies = [
+                            "Banana phone! 🥳 What's up?",
+                            "Did you know cats invented the internet? 😹",
+                            "I'm a potato. Beep boop! 🥔",
+                            "If you type backwards, I reply upside down! 🙃",
+                            "Rainbows taste like chicken! 🌈🍗",
+                            "I just danced with a unicorn! 🦄💃",
+                            "42 is the answer to everything!",
+                            "I speak fluent emoji! 😜🤖",
+                            "Why did the chicken join the chat? To get to the other side! 🐔",
+                            "Beep beep! I'm a crazy bot car! 🚗"
+                        ];
+                        const aiText = crazyReplies[Math.floor(Math.random() * crazyReplies.length)];
+                        const aiMessage = await Message.create({
+                            chatId: chat._id,
+                            senderId: aiBot._id,
+                            text: aiText
+                        });
+                        chat.lastMessage = aiMessage._id;
+                        await chat.save();
+                        const aiMessageData = {
+                            _id: aiMessage._id,
+                            chatId: chat._id,
+                            senderId: aiBot._id,
+                            text: aiText,
+                            createdAt: aiMessage.createdAt
+                        };
+                        socket.emit('message', aiMessageData);
+                    }, 1200); // 1.2s delay for realism
                 }
             } catch (err) {
                 console.error('Error in privateMessage:', err);
